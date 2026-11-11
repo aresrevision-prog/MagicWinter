@@ -571,8 +571,11 @@ function getSession() {
   for (const st of [sessionStorage, localStorage]) { try { const v = JSON.parse(st.getItem(SESS)); if (v && v.id && !v.id.startsWith("__") && (!v.until || v.until > Date.now()) && accounts()[v.id]) return v.id; } catch {} }
   return null;
 }
-const SITE_URL = location.protocol === "file:" ? "https://github.com/aresrevision-prog/MagicWinter" : (location.pathname.split("/").filter(Boolean).length > 1 || /\/floof/i.test(location.pathname) ? "/" : location.origin + "/");
-document.querySelectorAll("#mwHome,#mwBack,#mwSide").forEach(a => a.href = SITE_URL);
+// where "Back to site" goes: the MagicWinter site that sent you here (remembered), or "/" when Floof lives at /floof/ on that site
+const MW_SITE_DEFAULT = ""; // set to your MagicWinter site address, e.g. "https://your-site.vercel.app/"
+let SITE_URL = /\/floof\/?/i.test(location.pathname) ? "/" : MW_SITE_DEFAULT;
+try { const r = document.referrer && new URL(document.referrer); if (r && r.origin !== location.origin && /magicwinter|magic-winter/i.test(r.host)) localStorage.setItem("mw.site", r.origin + "/"); if (!SITE_URL) SITE_URL = localStorage.getItem("mw.site") || ""; } catch {}
+document.querySelectorAll("#mwHome,#mwBack,#mwSide").forEach(a => { if (SITE_URL) a.href = SITE_URL; else if (a.id === "mwHome") a.removeAttribute("href"); else a.style.display = "none"; });
 function snow() { // gentle snowfall, matches the MagicWinter site
   const c = $("#authSnow"), g = c.getContext("2d"); let W, H; const fl = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.8 + .6, v: Math.random() * .4 + .15, d: Math.random() * 6 }));
   const fit = () => { W = c.width = innerWidth; H = c.height = innerHeight; }; fit(); addEventListener("resize", fit);
