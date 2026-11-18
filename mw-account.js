@@ -38,6 +38,11 @@
 .mwa-tabs button{border:0;background:none;color:#8fb29b;padding:6px 14px;border-radius:9px;font:inherit;font-size:14px;cursor:pointer}.mwa-tabs button.on{background:#12291d;color:#3ddc84}
 .mwa-apps{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}.mwa-apps span{font-size:11px;color:#8fb29b;border:1px solid #21452f;border-radius:99px;padding:3px 9px}
 .mwa-pill.inline{position:static;box-shadow:none;padding:5px 12px 5px 6px;margin-left:6px;vertical-align:middle}
+.mwa-lk{display:flex;flex-direction:column;gap:10px;border:1px solid #21452f;border-radius:14px;padding:12px 14px;background:#0d1f16}
+.mwa-lk .hd{display:flex;align-items:center;gap:10px}.mwa-lk .ic{font-size:20px}.mwa-lk .nm{font-weight:700}.mwa-lk .st{font-size:12px;color:#8fb29b}.mwa-lk .st b{color:#3ddc84}
+.mwa-lk .sp{flex:1}.mwa-lk form{display:flex;flex-direction:column;gap:8px}
+.mwa-btn{border:1px solid #21452f;background:#12291d;color:#e9f5ec;border-radius:9px;padding:7px 12px;font:600 13px "Manrope",system-ui,sans-serif;cursor:pointer}.mwa-btn:hover,.mwa-btn:focus-visible{border-color:#3ddc84;outline:none}.mwa-btn:disabled{opacity:.5}
+.mwa-ok{color:#3ddc84;font-size:12px;min-height:16px}
 @media(max-width:520px){.mwa-pill .mwa-nm{display:none}}`;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
   if (!document.querySelector('link[href*="family=Syne"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Manrope:wght@400;600;700&display=swap"; document.head.appendChild(l); }
@@ -63,6 +68,52 @@
     } catch { return { error: "Can't reach the account server — check your internet and try again." }; }
   }
 
+  // calls to the account server (falls back to this site's own route on networks that block it)
+  async function call(path, body, bearer) {
+    const bases = [ARES]; if (/^https?:$/.test(location.protocol)) bases.push(location.origin);
+    let r, lastErr;
+    for (const b of bases) {
+      try {
+        const h = { "Content-Type": "application/json", apikey: ARES_KEY }; if (bearer) h.Authorization = "Bearer " + bearer;
+        r = await fetch(b + path, { method: "POST", headers: h, body: JSON.stringify(body || {}) });
+        if (r.status === 404 && b !== ARES) { r = null; continue; } break;
+      } catch (e) { lastErr = e; }
+    }
+    if (!r) throw lastErr || new Error("network");
+    let j = {}; try { j = await r.json(); } catch {}
+    if (/could not find the function|schema cache/i.test(j.message || "")) j = { error: "Linking isn't switched on yet — the studio needs to run magicwinter-links.sql in Supabase." };
+    return { status: r.status, j };
+  }
+  const rpc = (fn, body, bearer) => call("/rest/v1/rpc/" + fn, body, bearer).then(x => x.j);
+
+  // linked accounts (Ares Revision, Cipher)
+  const ub = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const b64 = buf => { const b = new Uint8Array(buf); let s = ""; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
+  async function linkAres(token, username, password) {
+    const { status, j } = await call("/functions/v1/login", { username, password });
+    if (!j.token) return { error: j.error || (status >= 500 ? "Ares sign-in is having trouble. Try again soon." : "Wrong Ares username or password.") };
+    return rpc("mw_link_ares", { p_token: token }, j.token);
+  }
+  async function linkCipher(token, num, password) {
+    if (!/^https?:$/.test(location.protocol)) return { error: "Cipher linking works on the live MagicWinter site." };
+    const g = await fetch("/api/link-cipher?num=" + encodeURIComponent(num)).then(r => r.json()).catch(() => ({ error: "Can't reach the MagicWinter site. Check your internet." }));
+    if (!g.ticket) return { error: g.error || "Couldn't start linking. Try again." };
+    let jwk;
+    try {
+      const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+      const k = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: ub(g.salt), iterations: 250000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+      jwk = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: ub(g.iv) }, k, ub(g.wk))));
+    } catch { return { error: "Wrong Cipher password." }; }
+    delete jwk.key_ops;
+    const EC = { name: "ECDH", namedCurve: "P-256" };
+    const priv = await crypto.subtle.importKey("jwk", jwk, EC, false, ["deriveKey"]);
+    const pub = await crypto.subtle.importKey("jwk", g.pub, EC, false, []);
+    const hk = await crypto.subtle.deriveKey({ name: "ECDH", public: pub }, priv, { name: "HMAC", hash: "SHA-256", length: 256 }, false, ["sign"]);
+    const proof = b64(await crypto.subtle.sign("HMAC", hk, new TextEncoder().encode(`${g.ticket}|${num}|${token}`)));
+    return fetch("/api/link-cipher", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticket: g.ticket, num, token, proof }) })
+      .then(r => r.json()).catch(() => ({ error: "Can't reach the MagicWinter site. Check your internet." }));
+  }
+
   // button + menu
   const pill = document.createElement("button"); pill.className = "mwa-pill"; pill.type = "button";
   const menu = document.createElement("div"); menu.className = "mwa-menu";
@@ -74,7 +125,8 @@
     const s = current(), u = s && s.user;
     pill.innerHTML = u ? `<span class="mwa-av">${esc(u[0].toUpperCase())}</span><span class="mwa-nm">${esc(u)}</span><span style="opacity:.6">▾</span>` : `${HEX}<span>Sign in</span>`;
     pill.setAttribute("aria-label", u ? "MagicWinter account: " + u : "Sign in with your MagicWinter account");
-    menu.innerHTML = u ? `<div class="who">MagicWinter account<br><b>${esc(u)}</b></div><a href="${ARES_SITE}" target="_blank" rel="noopener">📚 Ares Revision ↗</a><a href="https://frontlineswarfare.vercel.app" target="_blank" rel="noopener">🎖️ Frontline Warzone ↗</a>${FLOOF ? `<a href="${FLOOF}" target="_blank" rel="noopener">☁️ Floof AI ↗</a>` : ""}<button type="button" data-out>↩ Sign out</button>` : "";
+    menu.innerHTML = u ? `<div class="who">MagicWinter account<br><b>${esc(u)}</b></div><a href="${ARES_SITE}" target="_blank" rel="noopener">📚 Ares Revision ↗</a><a href="https://frontlineswarfare.vercel.app" target="_blank" rel="noopener">🎖️ Frontline Warzone ↗</a>${FLOOF ? `<a href="${FLOOF}" target="_blank" rel="noopener">☁️ Floof AI ↗</a>` : ""}<button type="button" data-links>🔗 Linked accounts</button><button type="button" data-out>↩ Sign out</button>` : "";
+    const lb = menu.querySelector("[data-links]"); if (lb) lb.onclick = () => { menu.classList.remove("on"); openLinks(); };
     const o = menu.querySelector("[data-out]"); if (o) o.onclick = () => { localStorage.removeItem(SESS); sessionStorage.removeItem(SESS); menu.classList.remove("on"); render(); emit(); };
   }
   pill.onclick = e => { e.stopPropagation(); if (current()) { placeMenu(); menu.classList.toggle("on"); } else open(); };
@@ -122,6 +174,65 @@
       close(); render(); emit();
     } finally { go.disabled = false; go.textContent = mode === "up" ? "Create account" : "Sign in"; }
   };
-  window.MWAccount = { user: () => current()?.user || null, signIn: open, signOut: () => menu.querySelector("[data-out]")?.click() };
+  // linked-accounts window
+  const lov = document.createElement("div"); lov.className = "mwa-ov";
+  lov.innerHTML = `<div class="mwa-box" role="dialog" aria-label="Linked accounts"><button type="button" class="mwa-x" aria-label="Close">✕</button>
+    <div class="mwa-eb">MagicWinter account</div><h2>Linked accounts</h2>
+    <div class="mwa-sub">Link your other accounts to <b data-me></b> so they work together.</div>
+    <div data-rows></div><div class="mwa-err" role="alert" data-lerr></div></div>`;
+  document.body.appendChild(lov);
+  const KINDS = [
+    { k: "ares", ic: "📚", nm: "Ares Revision", id: "Ares username", idType: "text", idAuto: "username" },
+    { k: "cipher", ic: "💬", nm: "Cipher", id: "Cipher number (e.g. 0042)", idType: "text", idAuto: "off" },
+  ];
+  let links = {}, openForm = null;
+  const lerr = t => lov.querySelector("[data-lerr]").textContent = t || "";
+  function drawLinks() {
+    const s = current(); if (!s) return closeLinks();
+    lov.querySelector("[data-me]").textContent = s.user;
+    lov.querySelector("[data-rows]").innerHTML = KINDS.map(x => {
+      const l = links[x.k];
+      const status = l ? `Linked to <b>${esc(x.k === "cipher" ? (l.ext_name && l.ext_name !== "#" + l.ext_id ? l.ext_name + " · #" + l.ext_id : "#" + l.ext_id) : (l.ext_name || l.ext_id))}</b>` : "Not linked";
+      const form = openForm === x.k ? `<form data-k="${x.k}" autocomplete="off"><input type="${x.idType}" name="i" placeholder="${x.id}" autocomplete="${x.idAuto}" maxlength="30" required>
+        <input type="password" name="p" placeholder="${x.nm} password" autocomplete="off" required>
+        <div class="mwa-row"><button class="mwa-go" type="submit" style="flex:1">Link ${x.nm}</button><button class="mwa-btn" type="button" data-cancel>Cancel</button></div>
+        <div class="mwa-sm">Your password is only used to prove the account is yours. It isn't saved.</div></form>` : "";
+      return `<div class="mwa-lk"><div class="hd"><span class="ic">${x.ic}</span><div><div class="nm">${x.nm}</div><div class="st">${status}</div></div><span class="sp"></span>
+        ${openForm === x.k ? "" : l ? `<button class="mwa-btn" type="button" data-un="${x.k}">Unlink</button>` : `<button class="mwa-btn" type="button" data-link="${x.k}">Link</button>`}</div>${form}</div>`;
+    }).join("");
+    lov.querySelectorAll("[data-link]").forEach(b => b.onclick = () => { openForm = b.dataset.link; lerr(""); drawLinks(); setTimeout(() => lov.querySelector("form [name=i]")?.focus(), 30); });
+    lov.querySelectorAll("[data-cancel]").forEach(b => b.onclick = () => { openForm = null; lerr(""); drawLinks(); });
+    lov.querySelectorAll("[data-un]").forEach(b => b.onclick = async () => {
+      if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "Sure? Unlink"; return; }
+      b.disabled = true; const r = await rpc("mw_unlink", { p_token: s.token, p_kind: b.dataset.un }).catch(() => ({ error: "Can't reach the account server." }));
+      if (!r.ok) return lerr(r.error || "Couldn't unlink."); delete links[b.dataset.un]; lerr(""); drawLinks(); emitLinks();
+    });
+    const fm = lov.querySelector("form[data-k]");
+    if (fm) fm.onsubmit = async e => {
+      e.preventDefault(); const k = fm.dataset.k, id = fm.i.value.trim(), pw = fm.p.value, go = fm.querySelector(".mwa-go");
+      if (k === "cipher" && !/^\d{4,12}$/.test(id.replace(/^#/, ""))) return lerr("Enter your Cipher number (digits only).");
+      if (!id || !pw) return lerr("Fill in both boxes.");
+      go.disabled = true; go.textContent = k === "cipher" ? "Unlocking…" : "Checking…"; lerr("");
+      let r; try { r = k === "ares" ? await linkAres(s.token, id, pw) : await linkCipher(s.token, id.replace(/^#/, ""), pw); }
+      catch { r = { error: "Can't reach the account server — check your internet and try again." }; }
+      fm.p.value = "";
+      if (!r || !r.ok) { go.disabled = false; go.textContent = "Link " + KINDS.find(x => x.k === k).nm; return lerr((r && r.error) || "Couldn't link."); }
+      links[k] = { kind: k, ext_id: r.ext_id, ext_name: r.ext_name }; openForm = null; drawLinks(); emitLinks();
+    };
+  }
+  const emitLinks = () => dispatchEvent(new CustomEvent("mwlinks", { detail: { links: { ...links } } }));
+  async function loadLinks() {
+    const s = current(); if (!s) return;
+    const r = await rpc("mw_links_list", { p_token: s.token }).catch(() => ({ error: "Can't reach the account server — check your internet." }));
+    if (r.ok) { links = {}; r.links.forEach(l => links[l.kind] = l); lerr(""); emitLinks(); } else lerr(r.error);
+    if (lov.classList.contains("on")) drawLinks();
+  }
+  function openLinks() { if (!current()) return open(); openForm = null; lerr(""); drawLinks(); lov.classList.add("on"); loadLinks(); }
+  function closeLinks() { lov.classList.remove("on"); openForm = null; }
+  lov.querySelector(".mwa-x").onclick = closeLinks; lov.addEventListener("click", e => { if (e.target === lov) closeLinks(); });
+  addEventListener("keydown", e => { if (e.key === "Escape") closeLinks(); });
+  addEventListener("mwaccount", e => { links = {}; if (e.detail.user) loadLinks(); else closeLinks(); });
+
+  window.MWAccount = { links: () => ({ ...links }), openLinks, user: () => current()?.user || null, signIn: open, signOut: () => menu.querySelector("[data-out]")?.click() };
   render(); emit();
 })();
