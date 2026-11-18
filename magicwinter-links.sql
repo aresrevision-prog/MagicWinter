@@ -64,13 +64,10 @@ end $$;
 -- The token is signed by Ares' login server, so it proves who the Ares user is.
 create or replace function public.mw_link_ares(p_token text) returns json
 language plpgsql security definer set search_path = public as $$
-declare u text := mw__user(p_token); c jsonb := auth.jwt(); claim text; a record;
+declare u text := mw__user(p_token); claim text := lower(coalesce(public.current_username(), '')); a record;
 begin
   if u is null then return json_build_object('error', 'Please sign in to MagicWinter again.'); end if;
-  if c is null or coalesce(c->>'role', 'anon') in ('anon', 'service_role') then
-    return json_build_object('error', 'Ares sign-in didn''t go through. Try again.');
-  end if;
-  claim := lower(coalesce(c->>'username', c->'user_metadata'->>'username', c->'app_metadata'->>'username', c->>'sub', ''));
+  if claim = '' then return json_build_object('error', 'Ares sign-in didn''t go through. Try again.'); end if;
   select username, coalesce(display_name, username) as nm into a from accounts where lower(username) = claim limit 1;
   if not found then return json_build_object('error', 'Couldn''t confirm that Ares account.'); end if;
   return mw__save_link(u, 'ares', lower(a.username), a.nm);
