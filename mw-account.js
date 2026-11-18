@@ -1,4 +1,4 @@
-/* MagicWinter account — one account for every MagicWinter Studio app (this site, Frontline Warzone, Floof AI…).
+/* MagicWinter account — one account for every MagicWinter Studio app (this site, Frontlines Warfare, Floof AI…).
    Accounts are real online accounts (Supabase Auth), so they work on any device.
    Add to any MagicWinter site with a script tag:  src="mw-account.js" defer
    Put <span data-mw-account> inside your nav to place the button there; otherwise it floats. Options (on the script tag): data-position="bottom-left" (or top-left, bottom-right) to move the button.
@@ -125,7 +125,7 @@
     const s = current(), u = s && s.user;
     pill.innerHTML = u ? `<span class="mwa-av">${esc(u[0].toUpperCase())}</span><span class="mwa-nm">${esc(u)}</span><span style="opacity:.6">▾</span>` : `${HEX}<span>Sign in</span>`;
     pill.setAttribute("aria-label", u ? "MagicWinter account: " + u : "Sign in with your MagicWinter account");
-    menu.innerHTML = u ? `<div class="who">MagicWinter account<br><b>${esc(u)}</b></div><a href="${ARES_SITE}" target="_blank" rel="noopener">📚 Ares Revision ↗</a><a href="https://frontlineswarfare.vercel.app" target="_blank" rel="noopener">🎖️ Frontline Warzone ↗</a>${FLOOF ? `<a href="${FLOOF}" target="_blank" rel="noopener">☁️ Floof AI ↗</a>` : ""}<button type="button" data-links>🔗 Linked accounts</button><button type="button" data-out>↩ Sign out</button>` : "";
+    menu.innerHTML = u ? `<div class="who">MagicWinter account<br><b>${esc(u)}</b></div><a href="${ARES_SITE}" target="_blank" rel="noopener">📚 Ares Revision ↗</a><a href="https://frontlineswarfare.vercel.app" target="_blank" rel="noopener">🎖️ Frontlines Warfare ↗</a>${FLOOF ? `<a href="${FLOOF}" target="_blank" rel="noopener">☁️ Floof AI ↗</a>` : ""}<button type="button" data-links>🔗 Linked accounts</button><button type="button" data-out>↩ Sign out</button>` : "";
     const lb = menu.querySelector("[data-links]"); if (lb) lb.onclick = () => { menu.classList.remove("on"); openLinks(); };
     const o = menu.querySelector("[data-out]"); if (o) o.onclick = () => { localStorage.removeItem(SESS); sessionStorage.removeItem(SESS); menu.classList.remove("on"); render(); emit(); };
   }
@@ -184,6 +184,7 @@
   const KINDS = [
     { k: "ares", ic: "📚", nm: "Ares Revision", id: "Ares username", idType: "text", idAuto: "username" },
     { k: "cipher", ic: "💬", nm: "Cipher", id: "Cipher number (e.g. 0042)", idType: "text", idAuto: "off" },
+    { k: "frontlines", ic: "🎖️", nm: "Frontlines Warfare", id: "Frontlines username", idType: "text", idAuto: "off" },
   ];
   let links = {}, openForm = null;
   const lerr = t => lov.querySelector("[data-lerr]").textContent = t || "";
@@ -213,7 +214,7 @@
       if (k === "cipher" && !/^\d{4,12}$/.test(id.replace(/^#/, ""))) return lerr("Enter your Cipher number (digits only).");
       if (!id || !pw) return lerr("Fill in both boxes.");
       go.disabled = true; go.textContent = k === "cipher" ? "Unlocking…" : "Checking…"; lerr("");
-      let r; try { r = k === "ares" ? await linkAres(s.token, id, pw) : await linkCipher(s.token, id.replace(/^#/, ""), pw); }
+      let r; try { r = k === "ares" ? await linkAres(s.token, id, pw) : k === "frontlines" ? await rpc("mw_link_frontlines", { p_token: s.token, p_fl_user: id, p_fl_pass: pw }) : await linkCipher(s.token, id.replace(/^#/, ""), pw); }
       catch { r = { error: "Can't reach the account server — check your internet and try again." }; }
       fm.p.value = "";
       if (!r || !r.ok) { go.disabled = false; go.textContent = "Link " + KINDS.find(x => x.k === k).nm; return lerr((r && r.error) || "Couldn't link."); }
