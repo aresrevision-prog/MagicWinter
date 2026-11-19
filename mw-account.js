@@ -43,6 +43,23 @@
 .mwa-lk .sp{flex:1}.mwa-lk form{display:flex;flex-direction:column;gap:8px}
 .mwa-btn{border:1px solid #21452f;background:#12291d;color:#e9f5ec;border-radius:9px;padding:7px 12px;font:600 13px "Manrope",system-ui,sans-serif;cursor:pointer}.mwa-btn:hover,.mwa-btn:focus-visible{border-color:#3ddc84;outline:none}.mwa-btn:disabled{opacity:.5}
 .mwa-ok{color:#3ddc84;font-size:12px;min-height:16px}
+.mwa-box.wide{max-width:540px;max-height:calc(100vh - 32px);overflow-y:auto}
+.mwa-bal{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;text-align:center}
+.mwa-bal .n{font:800 40px/1 "Syne",system-ui,sans-serif;background:linear-gradient(135deg,#3ddc84,#c6f06b);-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums}
+.mwa-bal .u{font:600 12px ui-monospace,Consolas,monospace;color:#8fb29b;letter-spacing:.1em;text-transform:uppercase}
+.mwa-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #21452f;background:#12291d;border-radius:99px;padding:5px 11px;font-size:12px;color:#e9f5ec}
+.mwa-h3{font:700 13px "Manrope",system-ui,sans-serif;color:#3ddc84;text-transform:uppercase;letter-spacing:.1em;margin:6px 0 0}
+.mwa-earn{display:grid;gap:6px}.mwa-earn>div{display:flex;align-items:center;gap:10px;font-size:13px;border:1px solid #21452f;border-radius:10px;padding:8px 10px;background:#0d1f16}
+.mwa-earn .p{margin-left:auto;font:700 12px ui-monospace,Consolas,monospace;color:#c6f06b;white-space:nowrap}.mwa-earn .s{color:#8fb29b;font-size:12px}.mwa-earn .done{color:#3ddc84}
+.mwa-shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.mwa-it{border:1px solid #21452f;border-radius:12px;padding:10px;background:#0d1f16;display:flex;flex-direction:column;gap:6px;min-width:0}
+.mwa-it .t{font-weight:700;font-size:13px}.mwa-it .c{font:700 12px ui-monospace,Consolas,monospace;color:#c6f06b}.mwa-it .mwa-note{font-size:11px;color:#8fb29b}
+.mwa-it .sw{height:26px;border-radius:8px;display:grid;place-items:center;font:800 13px "Syne",system-ui,sans-serif;background:#12291d}
+.mwa-it.own{border-color:#3ddc84}
+.mwa-hist{display:grid;gap:4px;font-size:12px}.mwa-hist div{display:flex;gap:8px;color:#8fb29b}.mwa-hist b{font-variant-numeric:tabular-nums;min-width:44px;color:#3ddc84}.mwa-hist b.neg{color:#ff9a8a}
+.mwa-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:10001;background:#12291d;border:1px solid #3ddc84;color:#e9f5ec;border-radius:99px;padding:9px 16px;font:600 13px "Manrope",system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px)}
+.mwa-aurora{background:linear-gradient(90deg,#3ddc84,#5bb8ff,#b69cff,#c6f06b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mwa-ttl{font:600 10px ui-monospace,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;color:#c6f06b;border:1px solid #21452f;border-radius:99px;padding:1px 6px;margin-left:6px}
 @media(max-width:520px){.mwa-pill .mwa-nm{display:none}}`;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
   if (!document.querySelector('link[href*="family=Syne"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Manrope:wght@400;600;700&display=swap"; document.head.appendChild(l); }
@@ -114,6 +131,16 @@
       .then(r => r.json()).catch(() => ({ error: "Can't reach the MagicWinter site. Check your internet." }));
   }
 
+  // reward points state (filled from the account server; cosmetics show on the account button)
+  let PTS = null;
+  const itemOf = id => PTS && (PTS.catalog || []).find(c => c.item === id);
+  const itemVal = id => (itemOf(id) || {}).val || "";
+  function nameHtml(u) {
+    const e = PTS && PTS.equipped || {}, col = itemVal(e.colour), badge = itemVal(e.badge);
+    const style = col && col !== "aurora" ? ` style="color:${esc(col)}"` : "";
+    return `${badge ? esc(badge) + " " : ""}<span${col === "aurora" ? ' class="mwa-aurora"' : ""}${style}>${esc(u)}</span>`;
+  }
+
   // button + menu
   const pill = document.createElement("button"); pill.className = "mwa-pill"; pill.type = "button";
   const menu = document.createElement("div"); menu.className = "mwa-menu";
@@ -123,10 +150,11 @@
   const placeMenu = () => { if (!slot) return; const r = pill.getBoundingClientRect(); Object.assign(menu.style, { top: r.bottom + 8 + "px", bottom: "auto", left: "auto", right: Math.max(8, innerWidth - r.right) + "px" }); };
   function render() {
     const s = current(), u = s && s.user;
-    pill.innerHTML = u ? `<span class="mwa-av">${esc(u[0].toUpperCase())}</span><span class="mwa-nm">${esc(u)}</span><span style="opacity:.6">▾</span>` : `${HEX}<span>Sign in</span>`;
+    pill.innerHTML = u ? `<span class="mwa-av">${esc(u[0].toUpperCase())}</span><span class="mwa-nm">${nameHtml(u)}</span><span style="opacity:.6">▾</span>` : `${HEX}<span>Sign in</span>`;
     pill.setAttribute("aria-label", u ? "MagicWinter account: " + u : "Sign in with your MagicWinter account");
-    menu.innerHTML = u ? `<div class="who">MagicWinter account<br><b>${esc(u)}</b></div><a href="${ARES_SITE}" target="_blank" rel="noopener">📚 Ares Revision ↗</a><a href="https://frontlineswarfare.vercel.app" target="_blank" rel="noopener">🎖️ Frontlines Warfare ↗</a>${FLOOF ? `<a href="${FLOOF}" target="_blank" rel="noopener">☁️ Floof AI ↗</a>` : ""}<button type="button" data-links>🔗 Linked accounts</button><button type="button" data-out>↩ Sign out</button>` : "";
+    menu.innerHTML = u ? `<div class="who">MagicWinter account<br><b>${nameHtml(u)}</b>${PTS && PTS.equipped.title ? `<span class="mwa-ttl">${esc(itemVal(PTS.equipped.title))}</span>` : ""}</div><button type="button" data-rewards>⭐ Rewards${PTS ? ` · ${PTS.balance.toLocaleString()} pts` : ""}</button><a href="${ARES_SITE}" target="_blank" rel="noopener">📚 Ares Revision ↗</a><a href="https://frontlineswarfare.vercel.app" target="_blank" rel="noopener">🎖️ Frontlines Warfare ↗</a>${FLOOF ? `<a href="${FLOOF}" target="_blank" rel="noopener">☁️ Floof AI ↗</a>` : ""}<button type="button" data-links>🔗 Linked accounts</button><button type="button" data-out>↩ Sign out</button>` : "";
     const lb = menu.querySelector("[data-links]"); if (lb) lb.onclick = () => { menu.classList.remove("on"); openLinks(); };
+    const rb = menu.querySelector("[data-rewards]"); if (rb) rb.onclick = () => { menu.classList.remove("on"); openRewards(); };
     const o = menu.querySelector("[data-out]"); if (o) o.onclick = () => { localStorage.removeItem(SESS); sessionStorage.removeItem(SESS); menu.classList.remove("on"); render(); emit(); };
   }
   pill.onclick = e => { e.stopPropagation(); if (current()) { placeMenu(); menu.classList.toggle("on"); } else open(); };
@@ -234,6 +262,96 @@
   addEventListener("keydown", e => { if (e.key === "Escape") closeLinks(); });
   addEventListener("mwaccount", e => { links = {}; if (e.detail.user) loadLinks(); else closeLinks(); });
 
-  window.MWAccount = { links: () => ({ ...links }), openLinks, user: () => current()?.user || null, signIn: open, signOut: () => menu.querySelector("[data-out]")?.click() };
+  // rewards window
+  let tT; const toastEl = document.createElement("div"); toastEl.className = "mwa-toast"; toastEl.hidden = true; toastEl.setAttribute("role", "status"); document.body.appendChild(toastEl);
+  function toast(msg) { toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(tT); tT = setTimeout(() => toastEl.hidden = true, 3200); }
+  const rov = document.createElement("div"); rov.className = "mwa-ov";
+  rov.innerHTML = `<div class="mwa-box wide" role="dialog" aria-label="Rewards"><button type="button" class="mwa-x" aria-label="Close">✕</button>
+    <div class="mwa-eb">MagicWinter rewards</div><h2>Your points</h2><div data-r></div><div class="mwa-err" role="alert" data-rerr></div></div>`;
+  document.body.appendChild(rov);
+  const rerr = t => rov.querySelector("[data-rerr]").textContent = t || "";
+  const PROJECTS = 10, GAMES = { frontlines: "Frontlines Warfare" };
+  const dt = s => new Date(s).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  function drawRewards() {
+    const s = current(); if (!s) return closeRewards();
+    const box = rov.querySelector("[data-r]");
+    if (!PTS) { box.innerHTML = `<div class="mwa-sub">Loading your points…</div>`; return; }
+    const p = PTS, owned = new Set(p.owned || []), linked = new Set(p.linked || []), rated = Object.keys(p.rated || {}).length;
+    const floofOn = p.floof_pro_until && new Date(p.floof_pro_until) > new Date();
+    const played = Object.entries(p.play_today || {}).map(([g, m]) => `${GAMES[g] || g}: ${m} min`).join(" · ");
+    const earn = [
+      ["📅", "Visit every day", p.checked_today ? `<span class="done">✓ Done today</span>` : "Open the site to check in", "+10"],
+      ["🔥", "Keep a 7-day streak", `${p.streak}-day streak · best ${p.best}`, "+50"],
+      ["🔗", "Link Ares, Cipher and Frontlines", ["ares", "cipher", "frontlines"].map(k => (linked.has(k) ? "✓ " : "") + ({ ares: "Ares", cipher: "Cipher", frontlines: "Frontlines" })[k]).join(" · "), "+50 each"],
+      ["👍", "Rate projects on this site", `${rated} of ${PROJECTS} rated`, "+5 each"],
+      ["🎮", "Play Frontlines Warfare (linked)", played || "Up to 60 minutes a day count", "+5 / 10 min"],
+    ];
+    const groups = [["pro", "Pro passes"], ["colour", "Name colours"], ["title", "Titles"], ["badge", "Badges"]];
+    const card = c => {
+      let state, btn;
+      if (c.kind === "pro") {
+        if (c.item === "ares_pro") {
+          state = p.ares_pro ? "Active on your Ares account" : p.ares_linked ? "For your linked Ares account" : "Link Ares Revision first";
+          btn = p.ares_pro ? `<button class="mwa-btn" disabled>Active</button>` : `<button class="mwa-btn" data-buy="${c.item}" ${!p.ares_linked || p.balance < c.cost ? "disabled" : ""}>Get it</button>`;
+        } else {
+          state = floofOn ? "Pro until " + dt(p.floof_pro_until) + " · adds time" : "For Floof AI";
+          btn = `<button class="mwa-btn" data-buy="${c.item}" ${p.balance < c.cost ? "disabled" : ""}>${floofOn ? "Add time" : "Get it"}</button>`;
+        }
+      } else {
+        const on = p.equipped[c.kind] === c.item;
+        state = owned.has(c.item) ? (on ? "Showing" : "Owned") : "";
+        btn = owned.has(c.item) ? `<button class="mwa-btn" data-equip="${c.kind}" data-item="${on ? "" : c.item}">${on ? "Take off" : "Show it"}</button>`
+          : `<button class="mwa-btn" data-buy="${c.item}" ${p.balance < c.cost ? "disabled" : ""}>Buy</button>`;
+      }
+      const sw = c.kind === "colour" ? `<div class="sw"><span class="${c.val === "aurora" ? "mwa-aurora" : ""}" style="${c.val === "aurora" ? "" : "color:" + esc(c.val)}">${esc(s.user)}</span></div>`
+        : c.kind === "badge" ? `<div class="sw" style="font-size:18px">${esc(c.val)}</div>` : c.kind === "title" ? `<div class="sw"><span class="mwa-ttl" style="margin:0">${esc(c.val)}</span></div>` : `<div class="sw">${c.item === "ares_pro" ? "📚" : "☁️"}</div>`;
+      return `<div class="mwa-it${owned.has(c.item) || (c.item === "ares_pro" && p.ares_pro) ? " own" : ""}">${sw}<div class="t">${esc(c.name)}</div><div class="c">${c.cost.toLocaleString()} pts</div>${state ? `<div class="mwa-note">${state}</div>` : ""}${btn}</div>`;
+    };
+    box.innerHTML = `<div class="mwa-bal"><div><div class="n">${p.balance.toLocaleString()}</div><div class="u">points</div></div><span class="mwa-chip">🔥 ${p.streak}-day streak</span></div>
+      <div class="mwa-h3">Ways to earn</div><div class="mwa-earn">${earn.map(e => `<div><span>${e[0]}</span><div><div>${e[1]}</div><div class="s">${e[2]}</div></div><span class="p">${e[3]}</span></div>`).join("")}</div>
+      <div class="mwa-h3">Rewards shop</div>${groups.map(([k, t]) => `<div class="mwa-sm" style="margin-top:4px">${t}</div><div class="mwa-shop">${(p.catalog || []).filter(c => c.kind === k).map(card).join("")}</div>`).join("")}
+      <div class="mwa-h3">Recent points</div><div class="mwa-hist">${(p.history || []).length ? p.history.map(h => `<div><b class="${h.amount < 0 ? "neg" : ""}">${h.amount > 0 ? "+" : ""}${h.amount}</b><span>${esc(h.note || "")}</span><span style="margin-left:auto">${dt(h.created_at)}</span></div>`).join("") : `<div>No points yet. Your first check-in is on its way.</div>`}</div>`;
+    box.querySelectorAll("[data-buy]").forEach(b => b.onclick = async () => {
+      const c = itemOf(b.dataset.buy);
+      if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = `Spend ${c.cost.toLocaleString()}?`; return; }
+      b.disabled = true; b.textContent = "Buying…"; rerr("");
+      const r = await rpc("mw_buy", { p_token: s.token, p_item: c.item }).catch(() => ({ error: "Can't reach the account server." }));
+      if (!r.ok) { rerr(r.error || "Couldn't buy that."); return loadPoints(); }
+      toast(c.item === "ares_pro" ? "Ares Pro is on! Reopen Ares Revision to see it." : c.kind === "pro" ? "Floof AI Pro is on!" : "Bought " + c.name + "!"); loadPoints();
+    });
+    box.querySelectorAll("[data-equip]").forEach(b => b.onclick = async () => {
+      b.disabled = true; const r = await rpc("mw_equip", { p_token: s.token, p_kind: b.dataset.equip, p_item: b.dataset.item || null }).catch(() => ({ error: "Can't reach the account server." }));
+      if (!r.ok) rerr(r.error || "Couldn't change that."); loadPoints();
+    });
+  }
+  const emitPts = () => dispatchEvent(new CustomEvent("mwpoints", { detail: PTS }));
+  let ptsBusy = null, ptsAgain = false;
+  function loadPoints() { if (ptsBusy) { ptsAgain = true; return ptsBusy; } ptsBusy = loadPoints1().finally(() => { ptsBusy = null; if (ptsAgain) { ptsAgain = false; loadPoints(); } }); return ptsBusy; }
+  async function loadPoints1() {
+    const s = current(); if (!s) return;
+    const r = await rpc("mw_points_me", { p_token: s.token }).catch(() => ({ error: "Can't reach the account server — check your internet." }));
+    if (r.ok) { PTS = r; rerr(""); render(); emitPts(); } else if (rov.classList.contains("on")) rerr(r.error);
+    if (rov.classList.contains("on")) drawRewards();
+  }
+  async function checkin() {
+    const s = current(); if (!s) return;
+    const r = await rpc("mw_checkin", { p_token: s.token }).catch(() => null);
+    if (r && r.ok && r.gained > 0) toast(`+${r.gained} points · ${r.streak}-day streak`);
+    loadPoints();
+  }
+  function openRewards() { if (!current()) return open(); rerr(""); drawRewards(); rov.classList.add("on"); loadPoints(); }
+  function closeRewards() { rov.classList.remove("on"); }
+  rov.querySelector(".mwa-x").onclick = closeRewards; rov.addEventListener("click", e => { if (e.target === rov) closeRewards(); });
+  addEventListener("keydown", e => { if (e.key === "Escape") closeRewards(); });
+  addEventListener("mwaccount", e => { PTS = null; if (e.detail.user) checkin(); else closeRewards(); });
+  addEventListener("mwlinks", () => { if (current()) loadPoints(); });
+  async function rate(project, value) { // signed-in ratings earn points
+    const s = current(); if (!s) return { error: "signed out" };
+    const r = await rpc("mw_rate", { p_token: s.token, p_project: project, p_value: value });
+    if (r.ok && r.gained > 0) { toast(`+${r.gained} points for rating ${project}`); loadPoints(); }
+    return r;
+  }
+
+  window.MWAccount = { points: () => PTS, openRewards, rate, links: () => ({ ...links }), openLinks, user: () => current()?.user || null, signIn: open, signOut: () => menu.querySelector("[data-out]")?.click() };
   render(); emit();
 })();

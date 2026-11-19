@@ -253,13 +253,16 @@ const H={
 };
 
 /* ===== Voting (Supabase) — paste your Project URL and publishable/anon key here ===== */
-const SB={url:"",key:""};
+const SB={url:"https://lakjmdyzuqrwcncxybcw.supabase.co",key:"sb_publishable__m0zTZ3-ThJVk0pktI65Ag_yDFPPD5s"};
 const VKEY="mw_votes",IDKEY="mw_voter";
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let VOTER=ls.get(IDKEY);if(!VOTER){VOTER=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)).replace(/-/g,"");ls.set(IDKEY,VOTER)}
-let MINE={};try{MINE=JSON.parse(ls.get(VKEY)||"{}")||{}}catch(e){}
+const anonMine=()=>{try{return JSON.parse(ls.get(VKEY)||"{}")||{}}catch(e){return{}}};let MINE=anonMine();
+const signedIn=()=>!!(window.MWAccount&&MWAccount.user());
+addEventListener("mwpoints",e=>{if(e.detail&&e.detail.rated){MINE=Object.assign({},e.detail.rated);paintVotes()}});
+addEventListener("mwaccount",e=>{if(!e.detail.user){MINE=anonMine();paintVotes()}});
 let TOT={},VOK=false;
-const api=(fn,body)=>fetch(SB.url.replace(/\/$/,"")+"/rest/v1/rpc/"+fn,{method:"POST",headers:{apikey:SB.key,Authorization:"Bearer "+SB.key,"Content-Type":"application/json"},body:JSON.stringify(body||{})}).then(r=>{if(!r.ok)throw new Error(r.status);return r.status===204?null:r.json()});
+const api=(fn,body)=>fetch(SB.url.replace(/\/$/,"")+"/rest/v1/rpc/"+fn,{method:"POST",headers:{apikey:SB.key,"Content-Type":"application/json"},body:JSON.stringify(body||{})}).then(r=>{if(!r.ok)throw new Error(r.status);return r.status===204?null:r.json()});
 const voteBar=n=>{const t=TOT[n]||{u:0,d:0},m=MINE[n]||0;return`<div class="vote" data-p="${esc(n)}"><button class="vb up${m===1?" on":""}" data-v="1" aria-pressed="${m===1}" aria-label="Upvote ${esc(n)}">▲</button><span class="vs">${VOK?t.u-t.d:"–"}</span><button class="vb dn${m===-1?" on":""}" data-v="-1" aria-pressed="${m===-1}" aria-label="Downvote ${esc(n)}">▼</button><span class="vc">${VOK?`${t.u} up · ${t.d} down`:"Ratings"}</span></div>`};
 function paintVotes(){document.querySelectorAll(".vote[data-p]").forEach(el=>{el.outerHTML=voteBar(el.dataset.p)})}
 let tT;function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(tT);tT=setTimeout(()=>t.hidden=true,2600)}
@@ -268,8 +271,9 @@ document.addEventListener("click",e=>{const b=e.target.closest(".vb");if(!b)retu
  if(!VOK){toast("Ratings are offline right now. Try again later.");return}
  const prev=MINE[n]||0,want=+b.dataset.v,next=prev===want?0:want,t=TOT[n]||(TOT[n]={u:0,d:0});
  const adj=(v,s)=>{if(v===1)t.u+=s;if(v===-1)t.d+=s};adj(prev,-1);adj(next,1);
- if(next)MINE[n]=next;else delete MINE[n];ls.set(VKEY,JSON.stringify(MINE));paintVotes();
- api("mw_cast_vote",{p_project:n,p_voter:VOTER,p_value:next}).then(()=>{if(next)toast(next===1?"Upvoted "+n:"Downvoted "+n)}).catch(()=>{adj(next,-1);adj(prev,1);if(prev)MINE[n]=prev;else delete MINE[n];ls.set(VKEY,JSON.stringify(MINE));paintVotes();toast("Couldn't save your vote. Check your connection and try again.")})},true);
+ const me=signedIn(),keep=()=>{if(!me)ls.set(VKEY,JSON.stringify(MINE))};
+ if(next)MINE[n]=next;else delete MINE[n];keep();paintVotes();
+ (me?MWAccount.rate(n,next).then(r=>{if(!r||!r.ok)throw new Error(r&&r.error);return r}):api("mw_cast_vote",{p_project:n,p_voter:VOTER,p_value:next})).then(r=>{if(next&&!(r&&r.gained))toast((next===1?"Upvoted ":"Downvoted ")+n+(me?"":" · sign in to earn points for rating"))}).catch(()=>{adj(next,-1);adj(prev,1);if(prev)MINE[n]=prev;else delete MINE[n];keep();paintVotes();toast("Couldn't save your vote. Check your connection and try again.")})},true);
 setInterval(()=>{if(!document.hidden)loadVotes()},30000);
 let F="all";const q=document.getElementById("q"),dlg=document.getElementById("dlg");
 const links=(n,u)=>{const p=(H[n]||{}).play;return(p||u)?`<div class="links">${p?`<a href="${p}" target="_blank" rel="noopener">Open ${esc(n)} ↗</a>`:""}${u?`<a href="${u}" target="_blank" rel="noopener">GitHub ↗</a>`:""}</div>`:""};
