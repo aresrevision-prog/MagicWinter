@@ -270,7 +270,7 @@
     <div class="mwa-eb">MagicWinter rewards</div><h2>Your points</h2><div data-r></div><div class="mwa-err" role="alert" data-rerr></div></div>`;
   document.body.appendChild(rov);
   const rerr = t => rov.querySelector("[data-rerr]").textContent = t || "";
-  const PROJECTS = 10, GAMES = { frontlines: "Frontlines Warfare" };
+  const PROJECTS = 12, GAMES = { frontlines: "Frontlines Warfare" };
   const dt = s => new Date(s).toLocaleDateString(undefined, { day: "numeric", month: "short" });
   function drawRewards() {
     const s = current(); if (!s) return closeRewards();
