@@ -103,6 +103,13 @@ body.inmenu #sb,body.inmenu #gauge,body.inmenu #wbox,body.inmenu #coinHud,body.i
   <div id="tabs"><button class="tab on" id="tab-play">PLAY</button> <button class="tab" id="tab-online">ONLINE</button> <button class="tab" id="tab-garage">GARAGE</button> <button class="tab" id="tab-stats">STATS</button> <button class="tab" id="tab-settings">SETTINGS</button></div>
   <div id="t-online" style="width:100%;display:none">
     <div class="panel"><h3>PLAYER</h3><label>Your name</label><input class="ti" id="nm" maxlength="14"></div>
+    <div class="panel" id="fpanel"><h3>FRIENDS &middot; CIPHER ACCOUNT</h3>
+      <div id="f-out"><label>Sign in with your Cipher number and passphrase (never sent anywhere - it only unlocks your account on this device)</label>
+        <div class="opts"><input class="ti" id="f-num" inputmode="numeric" maxlength="12" placeholder="Cipher number" style="width:130px"><input class="ti" id="f-pw" type="password" placeholder="Passphrase" style="width:150px"><button class="opt" id="f-go">Sign in</button></div></div>
+      <div id="f-in" style="display:none"><div class="opts" style="align-items:center"><span id="f-me"></span><button class="opt" id="f-so">Sign out</button></div>
+        <label>Add a friend by Cipher number</label><div class="opts"><input class="ti" id="f-add" inputmode="numeric" maxlength="12" placeholder="Their number" style="width:130px"><button class="opt" id="f-addb">Add</button></div>
+        <div id="f-list"></div></div>
+      <p id="f-st"></p></div>
     <div class="panel"><h3>PARTY</h3><label>Party code (send to friends)</label><div class="opts" style="align-items:center"><b id="pcode">-----</b><button class="opt" id="pcopy">Copy</button><button class="opt" id="plv" style="display:none">Leave party</button></div>
       <label>Join a friend's party</label><div class="opts"><input class="ti" id="pjin" maxlength="5" placeholder="CODE" style="text-transform:uppercase;width:90px"><button class="opt" id="pjbtn">Join</button></div>
       <div id="plist"></div><p id="pstat"></p></div>
@@ -1313,6 +1320,96 @@ $('pcopy').onclick=()=>{if(PTY.code)try{navigator.clipboard.writeText(PTY.code.t
 // keep hosting when the host's tab is in the background (requestAnimationFrame pauses there)
 try{const w=new Worker(URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},16)'],{type:'text/javascript'})));w.onmessage=()=>{if(document.hidden&&NET.role==='host')frame(performance.now(),false)}}catch(e){}
 $('cl').textContent='\u25cf BALL CAM';kickoff();requestAnimationFrame(loop);
+
+// ---------- FRIENDS: sign in with a Cipher account, friend people, join their party ----------
+(function(){
+const CU='https://wnpvskzbzahpqdiuoqkc.supabase.co',CK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InducHZza3piemFocHFkaXVvcWtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMTMxMjQsImV4cCI6MjEwNjg4OTEyNH0.7CN9BNaFJ8-sroZcJshcEI5wRUa7BjPEt5FsicLJi34',H={apikey:CK,Authorization:'Bearer '+CK,'Content-Type':'application/json'};
+let CA=null;try{CA=JSON.parse(localStorage.getItem('rd_cipher')||'null')}catch(e){}
+const st=t=>{$('f-st').textContent=t||''};
+const nclean=v=>String(v||'').replace(/\s*\/\s*admin\s*$/i,'').trim();
+const b64d=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));
+async function cget(q){const r=await fetch(CU+'/rest/v1/docs?'+q,{headers:H});if(!r.ok)throw new Error('Cipher is not reachable right now.');return r.json()}
+async function cput(path,coll,data){const r=await fetch(CU+'/rest/v1/docs?on_conflict=path',{method:'POST',headers:{...H,Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({path,coll,data,t:Date.now()}),keepalive:true});if(!r.ok)throw new Error('Could not save.')}
+async function cdel(path){await fetch(CU+'/rest/v1/docs?path=eq.'+encodeURIComponent(path),{method:'DELETE',headers:H})}
+async function passKey(pass,salt){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt'])}
+async function login(num,pass){
+  if(!/^\d{4,12}$/.test(num))throw new Error('Cipher numbers are 4-12 digits.');
+  const rows=await cget('select=data&path=eq.'+encodeURIComponent('numbers/'+num)),d=rows[0]&&rows[0].data;
+  if(!d||!d.wk)throw new Error('No Cipher account has that number.');
+  if((await cget('select=path&path=eq.'+encodeURIComponent('bans/'+num))).length)throw new Error('That Cipher account is suspended.');
+  try{await crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(d.iv)},await passKey(pass,b64d(d.salt)),b64d(d.wk))}catch(e){throw new Error('Wrong number or passphrase.')}
+  CA={num,name:nclean(d.name)||('#'+num)};try{localStorage.setItem('rd_cipher',JSON.stringify(CA))}catch(e){}
+}
+const pair=(a,b)=>a<b?[a,b]:[b,a];
+let FR=[],names={},pres={},busy=0;
+let again=0;
+async function refresh(){
+  if(!CA)return;if(busy){again=1;return}busy=1;
+  try{
+    const rows=await cget('select=path,data&coll=eq.rdf&or=('+encodeURIComponent('data->>a.eq.'+CA.num+',data->>b.eq.'+CA.num)+')');
+    FR=rows.map(r=>{const d=r.data,o=d.a===CA.num?d.b:d.a;return{num:o,path:r.path,st:d.st,from:d.from}});
+    const ids=FR.map(f=>f.num);
+    if(ids.length){
+      const nr=await cget('select=path,name:data-%3E%3Ename&path=in.('+ids.map(i=>'"numbers/'+i+'"').join(',')+')');
+      nr.forEach(r=>{names[r.path.slice(8)]=nclean(r.name)});
+      const pr=await cget('select=path,data&coll=eq.rdp&path=in.('+ids.map(i=>'"rdp/'+i+'"').join(',')+')');
+      pres={};pr.forEach(r=>{pres[r.path.slice(4)]=r.data});
+    }
+    render();
+  }catch(e){st(e.message)}
+  busy=0;if(again){again=0;refresh()}
+}
+const nm=f=>(names[f.num]||('#'+f.num))+' (#'+f.num+')';
+function btn(t,fn){const b=document.createElement('button');b.className='opt';b.textContent=t;b.onclick=fn;return b}
+function render(){
+  const L=$('f-list');L.textContent='';
+  const row=(f,extra)=>{const d=document.createElement('div');d.className='opts';d.style.cssText='align-items:center;margin-top:6px';const s=document.createElement('span');s.textContent=nm(f);s.style.flex='1';d.append(s);extra.forEach(x=>d.append(x));L.append(d)};
+  const reqs=FR.filter(f=>f.st==='pending'&&f.from!==CA.num),sent=FR.filter(f=>f.st==='pending'&&f.from===CA.num),ok=FR.filter(f=>f.st==='ok');
+  reqs.forEach(f=>row(f,[btn('Accept',()=>acc(f)),btn('Decline',()=>rm(f))]));
+  ok.forEach(f=>{const p=pres[f.num],on=p&&p.pc&&Date.now()-p.t<80000;
+    row(f,[Object.assign(document.createElement('small'),{textContent:on?'\u25CF online':'offline',style:'color:'+(on?'#5f5':'#889')}),...(on?[btn('Join party',()=>{$('pjin').value=p.pc;joinParty()})]:[]),btn('\u00D7',()=>{if(confirm('Remove '+nm(f)+'?'))rm(f)})])});
+  sent.forEach(f=>row(f,[Object.assign(document.createElement('small'),{textContent:'request sent',style:'color:#889'}),btn('\u00D7',()=>rm(f))]));
+  if(!FR.length){const p=document.createElement('p');p.textContent='No friends yet - add someone by their Cipher number.';L.append(p)}
+}
+async function acc(f){const[a,b]=pair(CA.num,f.num);await cput('rdf/'+a+'_'+b,'rdf',{a,b,from:f.from,st:'ok'});refresh()}
+async function rm(f){await cdel(f.path);refresh()}
+async function addFriend(){
+  const n=$('f-add').value.trim();if(!/^\d{4,12}$/.test(n))return st('Enter their Cipher number (digits).');
+  if(n===CA.num)return st("That's you!");
+  try{
+    const r=await cget('select=data&path=eq.'+encodeURIComponent('numbers/'+n));if(!r[0])return st('No Cipher account has number '+n+'.');
+    const[a,b]=pair(CA.num,n),ex=(await cget('select=data&path=eq.'+encodeURIComponent('rdf/'+a+'_'+b)))[0];
+    if(ex&&ex.data.st==='ok')return st('Already friends.');
+    if(ex&&ex.data.from===CA.num)return st('Request already sent.');
+    await cput('rdf/'+a+'_'+b,'rdf',{a,b,from:ex?ex.data.from:CA.num,st:ex?'ok':'pending'});
+    $('f-add').value='';st(ex?'You are now friends with '+nclean(r[0].data.name)+'!':'Friend request sent to '+nclean(r[0].data.name)+'.');refresh();
+  }catch(e){st(e.message)}
+}
+let hb=0;
+function beat(on){if(!CA)return;const pc=typeof PTY!=='undefined'&&PTY.code;if(on&&!pc)return;cput('rdp/'+CA.num,'rdp',{pc:on?pc:'',t:on?Date.now():0,nm:CA.name}).catch(()=>{})}
+function ui(){
+  $('f-out').style.display=CA?'none':'block';$('f-in').style.display=CA?'block':'none';
+  if(CA){$('f-me').textContent='Signed in as '+CA.name+' (#'+CA.num+')';
+    if(!hb){hb=setInterval(()=>{if(!document.hidden){beat(true);refresh()}},30000);}
+    try{if(typeof partyInit==='function')partyInit()}catch(e){}
+    [2500,8000,15000].forEach(t=>setTimeout(()=>beat(true),t));refresh();
+  }else if(hb){clearInterval(hb);hb=0}
+}
+$('f-go').onclick=async()=>{
+  const num=$('f-num').value.trim(),pw=$('f-pw').value;if(!num||!pw)return st('Enter your Cipher number and passphrase.');
+  $('f-go').disabled=true;st('Checking\u2026');
+  try{await login(num,pw);$('f-pw').value='';
+    cfg.name=sanNm(CA.name);$('nm').value=cfg.name;save();st('');ui()}catch(e){st(e.message)}
+  $('f-go').disabled=false;
+};
+$('f-pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('f-go').click()});
+$('f-add').addEventListener('keydown',e=>{if(e.key==='Enter')addFriend()});
+$('f-addb').onclick=addFriend;
+$('f-so').onclick=()=>{beat(false);CA=null;FR=[];try{localStorage.removeItem('rd_cipher')}catch(e){}ui()};
+addEventListener('pagehide',()=>beat(false));
+$('tab-online').addEventListener('click',()=>{if(CA)refresh()});
+ui();
+})();
 </script>
 <div style="position:fixed;left:8px;bottom:6px;z-index:99999;font:600 11px system-ui,-apple-system,sans-serif;color:#fff;opacity:.45;pointer-events:none;letter-spacing:.5px;text-shadow:0 1px 3px #000">by MagicWinter</div>
 </body>
