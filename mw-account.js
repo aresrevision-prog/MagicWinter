@@ -10,21 +10,21 @@
   const ARES_SITE = "https://ares-revision.vercel.app", SESS = "mw.session";
   const FLOOF = window.MW_FLOOF_URL || "https://floofai.vercel.app"; // set window.MW_FLOOF_URL to Floof's own website
   const me = document.currentScript, pos = (me && me.dataset.position) || "top-right";
-  const HEX = '<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M50 5l39 22.5v45L50 95 11 72.5v-45z" stroke="#3ddc84" stroke-width="6" fill="#0d1f16"/><path d="M16 38l18 26 16-28 16 28 18-26" stroke="#3ddc84" stroke-width="8"/><path d="M28 68V31l22 24 22-24v37" stroke="#0d1f16" stroke-width="12.5"/><path d="M28 68V31l22 24 22-24v37" stroke="#3ddc84" stroke-width="7.5"/></svg>';
-  const MINI = '<svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-3px"><path d="M50 5l39 22.5v45L50 95 11 72.5v-45z" stroke="#3ddc84" stroke-width="7" fill="#0d1f16"/><path d="M28 68V31l22 24 22-24v37" stroke="#3ddc84" stroke-width="9"/></svg>';
+  const HEX = '<img src="https://magicwinter.vercel.app/mw-logo-128.png" alt="" aria-hidden="true" style="border-radius:22%;object-fit:cover;display:inline-block">';
+  const MINI = '<img src="https://magicwinter.vercel.app/mw-logo-128.png" alt="" aria-hidden="true" style="width:15px;height:15px;vertical-align:-3px;border-radius:22%;object-fit:cover;display:inline-block">';
   const P = { "top-right": "top:14px;right:max(14px,2vw)", "top-left": "top:14px;left:max(14px,2vw)", "bottom-left": "bottom:14px;left:max(14px,2vw)", "bottom-right": "bottom:14px;right:max(14px,2vw)" }[pos] || "top:14px;right:max(14px,2vw)";
   const M = pos.startsWith("bottom") ? P.replace(/bottom:14px/, "bottom:58px") : P.replace(/top:14px/, "top:58px");
   const css = `
 .mwa-pill,.mwa-menu,.mwa-box,.mwa-box *{text-transform:none;letter-spacing:normal;box-sizing:border-box}
 .mwa-pill{position:fixed;${P};z-index:9999;display:flex;align-items:center;gap:8px;padding:7px 14px 7px 8px;border-radius:999px;border:1px solid #21452f;background:rgba(13,31,22,.84);backdrop-filter:blur(10px);color:#e9f5ec;font:600 13px "Manrope",system-ui,sans-serif;cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,.35);transition:opacity .2s}
-.mwa-pill:hover,.mwa-pill:focus-visible{border-color:#3ddc84;outline:none}.mwa-pill svg{width:22px;height:22px}.mwa-pill.away{opacity:0;pointer-events:none}
+.mwa-pill:hover,.mwa-pill:focus-visible{border-color:#3ddc84;outline:none}.mwa-pill svg,.mwa-pill img{width:22px;height:22px}.mwa-pill.away{opacity:0;pointer-events:none}
 .mwa-av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#3ddc84,#c6f06b);color:#07130d;font:800 12px "Syne",system-ui,sans-serif}
 .mwa-menu{position:fixed;${M};z-index:9999;min-width:230px;background:#0d1f16;border:1px solid #21452f;border-radius:14px;padding:6px;box-shadow:0 20px 50px rgba(0,0,0,.45);display:none;font:14px "Manrope",system-ui,sans-serif}
 .mwa-menu.on{display:block}.mwa-menu a,.mwa-menu button{display:flex;gap:10px;align-items:center;width:100%;padding:9px 10px;border:0;border-radius:9px;background:none;color:#e9f5ec;text-decoration:none;font:inherit;cursor:pointer;text-align:left}
 .mwa-menu a:hover,.mwa-menu button:hover{background:#12291d}.mwa-menu .who{padding:8px 10px 10px;color:#8fb29b;font-size:12px;border-bottom:1px solid #21452f;margin-bottom:4px}.mwa-menu .who b{color:#e9f5ec;font-size:14px}
 .mwa-ov{position:fixed;inset:0;z-index:10000;background:rgba(3,10,6,.78);backdrop-filter:blur(6px);display:none;place-items:center;padding:16px}.mwa-ov.on{display:grid}
 .mwa-box{position:relative;width:100%;max-width:380px;box-sizing:border-box;background:linear-gradient(160deg,#12291d,#0d1f16);border:1px solid #21452f;border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:12px;color:#e9f5ec;font:15px "Manrope",system-ui,sans-serif;box-shadow:0 30px 80px rgba(0,0,0,.5)}
-.mwa-box .lg{width:58px;height:58px;margin:0 auto;filter:drop-shadow(0 0 10px rgba(61,220,132,.35))}.mwa-box .lg svg{width:100%;height:100%}
+.mwa-box .lg{width:58px;height:58px;margin:0 auto;filter:drop-shadow(0 0 10px rgba(61,220,132,.35))}.mwa-box .lg svg,.mwa-box .lg img{width:100%;height:100%}
 .mwa-box .mwa-eb{font:600 11px ui-monospace,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:#3ddc84;text-align:center}
 .mwa-box h2{margin:0;text-align:center;font:800 26px/1.1 "Syne",system-ui,sans-serif}
 .mwa-sub{text-align:center;color:#8fb29b;font-size:13px}.mwa-sub b{color:#e9f5ec}
@@ -69,7 +69,7 @@
     for (const s of [sessionStorage, localStorage]) { try { const v = JSON.parse(s.getItem(SESS)); if (v && v.user && v.kind === "mw" && (!v.until || v.until > Date.now())) return v; } catch {} }
     return null;
   }
-  const emit = () => dispatchEvent(new CustomEvent("mwaccount", { detail: { user: current()?.user || null } }));
+  const emit = () => dispatchEvent(new CustomEvent("mwaccount", { detail: { user: current()?.user || null, token: current()?.token || null } }));
 
   // MagicWinter accounts: username + password, checked by database functions on the account server (no emails)
   async function mwAuth(kind, username, password) {
@@ -113,7 +113,8 @@
   }
   async function linkCipher(token, num, password) {
     if (!/^https?:$/.test(location.protocol)) return { error: "Cipher linking works on the live MagicWinter site." };
-    const g = await fetch("/api/link-cipher?num=" + encodeURIComponent(num)).then(r => r.json()).catch(() => ({ error: "Can't reach the MagicWinter site. Check your internet." }));
+    const API = /magicwinter\.vercel\.app$/i.test(location.hostname) ? "" : "https://magicwinter.vercel.app";
+    const g = await fetch(API + "/api/link-cipher?num=" + encodeURIComponent(num)).then(r => r.json()).catch(() => ({ error: "Can't reach the MagicWinter site. Check your internet." }));
     if (!g.ticket) return { error: g.error || "Couldn't start linking. Try again." };
     let jwk;
     try {
@@ -127,7 +128,7 @@
     const pub = await crypto.subtle.importKey("jwk", g.pub, EC, false, []);
     const hk = await crypto.subtle.deriveKey({ name: "ECDH", public: pub }, priv, { name: "HMAC", hash: "SHA-256", length: 256 }, false, ["sign"]);
     const proof = b64(await crypto.subtle.sign("HMAC", hk, new TextEncoder().encode(`${g.ticket}|${num}|${token}`)));
-    return fetch("/api/link-cipher", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticket: g.ticket, num, token, proof }) })
+    return fetch(API + "/api/link-cipher", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticket: g.ticket, num, token, proof }) })
       .then(r => r.json()).catch(() => ({ error: "Can't reach the MagicWinter site. Check your internet." }));
   }
 
@@ -352,6 +353,6 @@
     return r;
   }
 
-  window.MWAccount = { points: () => PTS, openRewards, rate, links: () => ({ ...links }), openLinks, user: () => current()?.user || null, signIn: open, signOut: () => menu.querySelector("[data-out]")?.click() };
+  window.MWAccount = { points: () => PTS, openRewards, rate, links: () => ({ ...links }), openLinks, user: () => current()?.user || null, token: () => current()?.token || null, signIn: open, signOut: () => menu.querySelector("[data-out]")?.click() };
   render(); emit();
 })();

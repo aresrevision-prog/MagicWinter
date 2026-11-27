@@ -11,6 +11,7 @@ const MW_KEY = process.env.MW_SUPABASE_KEY || "sb_publishable__m0zTZ3-ThJVk0pktI
 const CIPHER_SITE = process.env.CIPHER_SITE || "https://cipher-six-blue.vercel.app";
 const ECDH = { name: "ECDH", namedCurve: "P-256" };
 const TICKET_MS = 5 * 60 * 1000;
+const CUTOFF = Date.parse("2026-11-27T21:30:00Z"); // Cipher switched to MagicWinter sign-in
 const te = new TextEncoder(), td = new TextDecoder();
 
 const b64u = buf => Buffer.from(buf).toString("base64url");
@@ -42,6 +43,12 @@ const noOps = jwk => { const j = { ...jwk }; delete j.key_ops; return j; };
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
+  const origin = String(req.headers.origin || "");
+  if (/^https:\/\/(cipher-six-blue|magicwinter)\.vercel\.app$/i.test(origin) || /^https:\/\/cipher[a-z0-9-]*\.vercel\.app$/i.test(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS"); res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  }
+  if (req.method === "OPTIONS") return res.status(204).end();
   const send = (code, obj) => res.status(code).json(obj);
   if (!process.env.LINK_SECRET) return send(503, { error: "Cipher linking isn't switched on yet (the studio needs to add LINK_SECRET in Vercel)." });
   try {
@@ -80,6 +87,17 @@ module.exports = async (req, res) => {
       });
       let j = {}; try { j = await r.json(); } catch {}
       if (r.status === 404 || /could not find the function|schema cache/i.test(j.message || "")) return send(503, { error: "Linking isn't switched on yet (the studio needs to run magicwinter-links.sql)." });
+      if (j.ok) {
+        // numbers made before MagicWinter sign-in became the only way in earn the +100 transfer bonus (once per number)
+        const old = !d.terms || Number(d.terms) < CUTOFF;
+        if (old) {
+          try {
+            const b2 = await fetch(MW_URL + "/rest/v1/rpc/mw_cipher_bonus", { method: "POST", headers: { "Content-Type": "application/json", apikey: MW_KEY },
+              body: JSON.stringify({ p_secret: process.env.LINK_SECRET, p_token: token, p_num: num }) }).then(x => x.json());
+            if (b2 && b2.got) j.bonus = b2.got;
+          } catch {}
+        }
+      }
       return send(j.ok ? 200 : 400, j.ok ? j : { error: j.error || "Couldn't save the link." });
     }
     res.setHeader("Allow", "GET, POST");

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="copyright" content="© 2025–2026 MagicWinter Studio. All rights reserved.">
 <meta name="description" content="MagicWinter Studio: browser games, study apps and tools built for Chromebook.">
-<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/mw-logo.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 .wrap{isolation:isolate}
 .hero::before{content:"";position:absolute;right:0;top:-60px;width:min(560px,100%);height:560px;background:radial-gradient(circle,rgba(61,220,132,.16),transparent 65%);pointer-events:none;z-index:-1}
@@ -44,7 +44,7 @@ body{background:var(--night);color:var(--snow);font-family:var(--f-body);font-si
 .wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto}
 nav{display:flex;justify-content:space-between;align-items:center;padding-block:22px;gap:16px;flex-wrap:wrap}
 .logo{font-family:var(--f-display);font-weight:800;letter-spacing:.02em;font-size:18px;display:flex;align-items:center;gap:10px}
-.logo svg{width:40px;height:40px;filter:drop-shadow(0 0 6px rgba(61,220,132,.35))}
+.logo svg,.logo img{width:40px;height:40px;filter:drop-shadow(0 0 6px rgba(61,220,132,.35))}
 nav a{color:var(--mist);text-decoration:none;font-family:var(--f-mono);font-size:13px}
 nav a:hover,nav a:focus-visible{color:var(--ice)}
 .hero{padding-block:56px 48px;display:grid;gap:20px}
@@ -107,7 +107,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .dnav button{font:600 13px var(--f-mono);background:none;border:1px solid var(--line);color:var(--snow);border-radius:999px;padding:7px 14px;cursor:pointer}
 .dnav button:hover,.dnav button:focus-visible{border-color:var(--ice);color:var(--ice);outline:none}
 .hero{position:relative}
-.biglogo{width:120px;max-width:100%;filter:drop-shadow(0 0 24px rgba(61,220,132,.35))}
+.biglogo{width:120px;height:auto;aspect-ratio:1;max-width:100%;filter:drop-shadow(0 0 24px rgba(61,220,132,.35))}
 .biglogo .d{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.6s cubic-bezier(.6,0,.2,1) forwards}
 .biglogo .w{animation-delay:.5s}.biglogo .m{animation-delay:.9s}
 @keyframes draw{to{stroke-dashoffset:0}}
@@ -167,12 +167,12 @@ dialog li::before{content:"▸";color:var(--ice)}
 <canvas id="snow" aria-hidden="true"></canvas>
 <div class="wrap">
   <nav>
-    <div class="logo"><svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M50 5l39 22.5v45L50 95 11 72.5v-45z" stroke="#3ddc84" stroke-width="4" fill="#0d1f16"/><path d="M16 38l18 26 16-28 16 28 18-26" stroke="#3ddc84" stroke-width="3.4"/><path d="M28 68V31l22 24 22-24v37" stroke="#0d1f16" stroke-width="8"/><path d="M28 68V31l22 24 22-24v37" stroke="#3ddc84" stroke-width="3.4"/></svg>MagicWinter Studio</div>
+    <div class="logo"><img src="mw-logo-128.png" alt="" aria-hidden="true" style="border-radius:22%;object-fit:cover;display:inline-block">MagicWinter Studio</div>
     <div class="navl"><a class="s" href="#learning">Learning</a><a class="s" href="#gaming">Gaming</a><a class="s" href="#communication">Communication</a><a class="s" href="#ai">AI</a><a class="s" href="#esps">ESPs</a><a href="https://github.com/aresrevision-prog" target="_blank" rel="noopener">GitHub ↗</a><span data-mw-account></span></div>
   </nav>
 
   <header class="hero">
-    <svg class="biglogo" viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="d" pathLength="1" d="M50 5l39 22.5v45L50 95 11 72.5v-45z" stroke="#3ddc84" stroke-width="2.5" fill="none"/><path class="d w" pathLength="1" d="M16 38l18 26 16-28 16 28 18-26" stroke="#3ddc84" stroke-width="2.4"/><path class="d m" pathLength="1" d="M28 68V31l22 24 22-24v37" stroke="#07130d" stroke-width="7"/><path class="d m" pathLength="1" d="M28 68V31l22 24 22-24v37" stroke="#3ddc84" stroke-width="2.4"/></svg>
+    <img src="mw-logo.png" alt="" aria-hidden="true" class="biglogo" style="border-radius:22%;object-fit:cover;display:inline-block">
     <div class="eyebrow">Independent studio · est. 2025</div>
     <h1>Games &amp; tools<br>built to <span>just run.</span></h1>
     <p class="lede">MagicWinter makes browser games, study apps and utilities that run anywhere a tab opens. Single-file builds, no installs, made to work on a school Chromebook.</p>
