@@ -77,7 +77,7 @@ a.chip{text-decoration:none;color:var(--accent)}
 #auth{position:fixed;inset:0;z-index:60;background:radial-gradient(1200px 600px at 15% -10%,rgba(61,220,132,.18),transparent 60%),radial-gradient(900px 500px at 110% 110%,rgba(198,240,107,.12),transparent 60%),#07130d;display:grid;place-items:center;padding:16px;overflow:auto}
 #auth.hide{display:none}#authSnow{position:fixed;inset:0;pointer-events:none}
 .authtop{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:16px max(16px,4vw);z-index:1}
-.mwbrand{display:flex;align-items:center;gap:10px;font:800 17px "Syne",system-ui,sans-serif;color:var(--text);text-decoration:none}.mwbrand svg,.mwbrand img{width:34px;height:34px;filter:drop-shadow(0 0 6px rgba(61,220,132,.4))}
+.mwbrand{display:flex;align-items:center;gap:10px;font:800 17px "Syne",system-ui,sans-serif;color:var(--text);text-decoration:none}.mwbrand svg{width:34px;height:34px;filter:drop-shadow(0 0 6px rgba(61,220,132,.4))}
 .authtop a.back{color:var(--dim);text-decoration:none;font-size:13px;border:1px solid var(--line);border-radius:99px;padding:6px 12px;background:rgba(13,31,22,.6)}.authtop a.back:hover{color:var(--text);border-color:var(--accent)}
 .authbox{position:relative;z-index:1;width:100%;max-width:380px;background:linear-gradient(160deg,rgba(18,41,29,.92),rgba(13,31,22,.92));border:1px solid var(--line);border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:12px;box-shadow:0 30px 80px rgba(0,0,0,.45),0 0 0 1px rgba(61,220,132,.06) inset;backdrop-filter:blur(8px)}
 .authbox h2{font:800 30px/1 "Syne",system-ui,sans-serif;text-align:center;margin:4px 0 0}
@@ -236,11 +236,11 @@ figure.arti.grid9{max-width:560px}
 <body>
 <div id="auth">
   <canvas id="authSnow"></canvas>
-  <div class="authtop"><a class="mwbrand" href="/" id="mwHome"><img src="https://magicwinter.vercel.app/mw-logo-128.png" alt="" aria-hidden="true" style="border-radius:22%;object-fit:cover;display:inline-block">MagicWinter Studio</a><a class="back" href="/" id="mwBack">← Back to site</a></div>
+  <div class="authtop"><a class="mwbrand" href="/" id="mwHome"><svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M50 5l39 22.5v45L50 95 11 72.5v-45z" stroke="#3ddc84" stroke-width="6" fill="#0d1f16"/><path d="M16 38l18 26 16-28 16 28 18-26" stroke="#3ddc84" stroke-width="8"/><path d="M28 68V31l22 24 22-24v37" stroke="#0d1f16" stroke-width="12.5"/><path d="M28 68V31l22 24 22-24v37" stroke="#3ddc84" stroke-width="7.5"/></svg>MagicWinter Studio</a><a class="back" href="/" id="mwBack">← Back to site</a></div>
   <div class="authbox">
     <div class="logo" id="authLogo" style="width:76px;height:76px;margin:0 auto"></div>
     <h2><span>Floof</span> AI</h2>
-    <div class="kind" id="aKind"><button type="button" data-k="mw" class="on"><img src="https://magicwinter.vercel.app/mw-logo-128.png" alt="" aria-hidden="true" style="width:15px;height:15px;vertical-align:-3px;border-radius:22%;object-fit:cover;display:inline-block"> MagicWinter</button><button type="button" data-k="ares">🦉 Ares (Athena)</button></div>
+    <div class="kind" id="aKind"><button type="button" data-k="mw" class="on"><svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-3px"><path d="M50 5l39 22.5v45L50 95 11 72.5v-45z" stroke="#3ddc84" stroke-width="7" fill="#0d1f16"/><path d="M28 68V31l22 24 22-24v37" stroke="#3ddc84" stroke-width="9"/></svg> MagicWinter</button><button type="button" data-k="ares">🦉 Ares (Athena)</button></div>
     <div class="small" id="aSub" style="text-align:center"></div>
     <div class="tabs" id="aTabs" style="align-self:center"><button id="aTabIn" class="on" type="button">Sign in</button><button id="aTabUp" type="button">Create account</button></div>
     <form id="aForm" autocomplete="on">
@@ -253,7 +253,7 @@ figure.arti.grid9{max-width:560px}
     </form>
     <div class="small" id="aAresLinks" style="text-align:center;display:none">No Ares account? <a href="https://ares-revision.vercel.app" target="_blank" rel="noopener" style="color:var(--accent)">Create one on Ares Revision ↗</a></div>
     <button type="button" id="aSwitch" class="linkbtn">No internet? Use a device-only account</button>
-    <div class="authfoot"><img src="https://magicwinter.vercel.app/mw-logo-128.png" alt="" aria-hidden="true" style="border-radius:22%;object-fit:cover;display:inline-block"><span>© MagicWinter Studio · <a href="#" class="privLink" style="color:var(--dim)">Privacy</a></span></div>
+    <div class="authfoot"><svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M50 5l39 22.5v45L50 95 11 72.5v-45z" stroke="#3ddc84" stroke-width="6" fill="#0d1f16"/><path d="M16 38l18 26 16-28 16 28 18-26" stroke="#3ddc84" stroke-width="8"/><path d="M28 68V31l22 24 22-24v37" stroke="#0d1f16" stroke-width="12.5"/><path d="M28 68V31l22 24 22-24v37" stroke="#3ddc84" stroke-width="7.5"/></svg><span>© MagicWinter Studio · <a href="#" class="privLink" style="color:var(--dim)">Privacy</a></span></div>
   </div>
 </div>
 <aside id="side">
@@ -291,7 +291,7 @@ figure.arti.grid9{max-width:560px}
     <button id="reset" class="sblink">Reset downloads</button>
   </details>
   <div class="row small sbuser"><span style="flex:1;overflow:hidden;text-overflow:ellipsis">👤 <b id="whoami" style="color:var(--text)"></b></span><button id="signOut" style="font-size:12px;padding:4px 10px">Sign out</button></div>
-  <a href="/" id="mwSide" class="mwbrand" style="font-size:12px;gap:8px;opacity:.85"><img src="https://magicwinter.vercel.app/mw-logo-128.png" alt="" aria-hidden="true" style="width:20px;height:20px;border-radius:22%;object-fit:cover;display:inline-block">MagicWinter Studio ↗</a>
+  <a href="/" id="mwSide" class="mwbrand" style="font-size:12px;gap:8px;opacity:.85"><svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px" aria-hidden="true"><path d="M50 5l39 22.5v45L50 95 11 72.5v-45z" stroke="#3ddc84" stroke-width="6" fill="#0d1f16"/><path d="M16 38l18 26 16-28 16 28 18-26" stroke="#3ddc84" stroke-width="8"/><path d="M28 68V31l22 24 22-24v37" stroke="#0d1f16" stroke-width="12.5"/><path d="M28 68V31l22 24 22-24v37" stroke="#3ddc84" stroke-width="7.5"/></svg>MagicWinter Studio ↗</a>
 </aside>
 <main>
   <header>
